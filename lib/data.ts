@@ -1,93 +1,110 @@
 export const LEARNING_PHASES = [
     {
         id: 1,
-        title: 'Fundamentos y Taller',
-        subtitle: 'Precisión ±0,5 mm y estaciones móviles',
+        title: 'Geometría y Afilado',
+        subtitle: 'Precisión ±0,5 mm y bases del oficio',
         duration: '0-4 meses',
         color: '#8B5E3C',
         icon: '🏗️',
         objectives: [
-            'Dominar cortes a escuadra repetitivos',
-            'Lograr precisión de ±0,5 mm en cortes',
-            'Construir el ecosistema del micro-taller (banco, carro, panel)',
-            'Validar el trineo a 90º (método de 5 cortes)'
+            'Dominar cortes a escuadra repetitivos (Trineo a 90º)',
+            'Afilado manual de formones y cepillos a espejo',
+            'Entender el movimiento higroscópico de la madera',
+            'Construir el ecosistema del micro-taller funcional'
         ],
-        skills: ['Seguridad en sierra de banco', 'Ajuste de guías', 'Lijado progresivo 80-180', 'Encolado estructural'],
+        skills: ['Seguridad en máquinas', 'Técnicas de afilado', 'Metrología básica', 'Identificación de especies'],
         exercises: [
-            '40 cortes repetitivos por semana (medir variación)',
             'Prueba de 5 cortes hasta error cero',
-            'Construcción de 2 plantillas mensuales'
+            'Afilado de formón hasta afeitar vello',
+            'Cálculo de expansión estacional en una tabla de 30cm'
         ],
         resources: [
             { title: 'Guía: Método de 5 cortes', type: 'video' },
-            { title: 'Layout: Micro-taller bajo escalera', type: 'doc' }
+            { title: 'Afilado: Piedras vs Diamante', type: 'video' }
         ]
     },
     {
         id: 2,
-        title: 'Ensambles y Estructuras',
-        subtitle: 'Mortaja, espiga y rigidez',
+        title: 'Ingeniería de Uniones',
+        subtitle: 'Mortaja, espiga y rigidez estructural',
         duration: '5-10 meses',
         color: '#D4A853',
         icon: '🪵',
         objectives: [
-            'Uniones en escuadra sin juego',
-            'Dominio de mortaja y espiga (holgura 0,1mm)',
-            'Construcción de estructuras rígidas sin herrajes visibles'
+            'Uniones de caja y espiga con ajuste por fricción (0,1mm)',
+            'Diseño de estructuras que "respiran" con el clima',
+            'Dominio de la fresadora para ensambles ciegos',
+            'Primera silla de prueba (mecánica de fuerzas)'
         ],
-        skills: ['Mortaja con fresadora', 'Ajuste manual de espigas', 'Diseño de bastidores'],
+        skills: ['Mortajado de precisión', 'Ajuste manual de espigas', 'Diseño de bastidores rígidos'],
         exercises: [
-            'Ensamble de 10 marcos de prueba',
-            'Prueba de carga en bancos pequeños'
+            'Ensamble de 10 marcos de prueba (sin cola)',
+            'Construcción de un taburete tradicional'
         ],
-        resources: []
+        resources: [
+            { title: 'Anatomía de la unión Mortaja-Espiga', type: 'doc' }
+        ]
     },
     {
         id: 3,
-        title: 'Acabados y Diseño',
-        subtitle: 'Poliuretano y Aceite Duro',
+        title: 'Lenguajes de Diseño y CAD',
+        subtitle: 'Modelado 3D y Estética Propia',
         duration: '11-18 meses',
         color: '#E8882A',
         icon: '✨',
         objectives: [
-            'Acabados nivel espejo sin polvo',
-            'Aplicación sistemática de aceite duro',
-            'Primer prototipo de Mesa Japonesa (en pino)'
+            'Modelado básico en Fusion 360 o SketchUp',
+            'Elección de un lenguaje visual (Japonés, Shaker, Danés)',
+            'Acabados químicos (Poliuretano) vs Orgánicos (Aceites)',
+            'Prototipado rápido en escala 1:5'
         ],
-        skills: ['Pre-acabado por piezas', 'Control de humedad', 'Diseño de proporciones'],
-        exercises: [],
-        resources: []
+        skills: ['Dibujo técnico digital', 'Pre-acabado por piezas', 'Teoría de Proporciones'],
+        exercises: [
+            'Diseño completo de un mueble en CAD',
+            'Pruebas de acabado en 5 maderas distintas'
+        ],
+        resources: [
+            { title: 'Curso de Fusion 360 para Carpinteros', type: 'video' }
+        ]
     },
     {
         id: 4,
-        title: 'Identidad y Catálogo',
-        subtitle: 'Línea de productos propia',
+        title: 'Sistematización y Marca',
+        subtitle: 'La eficiencia del artesano moderno',
         duration: '2-3 años',
         color: '#A67C52',
         icon: '💼',
         objectives: [
-            'Crear catálogo de 3-5 productos fijos',
-            'Manual de procesos estandarizado',
-            'Fotografía consistente para RRSS'
+            'Creación de Jigs (plantillas) maestros para el catálogo',
+            'Costo real: Materiales + Horas + Amortización',
+            'Fotografía de producto y narrativa de marca',
+            'Lanzamiento de 3 piezas estandarizadas'
         ],
-        skills: ['Costeo estándar', 'Marketing para artesanos'],
-        exercises: [],
+        skills: ['Costeo industrial', 'Marketing de autor', 'Fotografía con celular'],
+        exercises: [
+            'Manual de procesos para tu pieza estrella',
+            'Sesión de fotos de producto profesional'
+        ],
         resources: []
     },
     {
         id: 5,
-        title: 'Profesionalización',
-        subtitle: 'Mesa Eterna y Tickets Altos',
+        title: 'Maestría y Mesa Eterna',
+        subtitle: 'Piezas de colección y alto valor',
         duration: '3-5 años',
         color: '#5D3A1A',
         icon: '🏆',
         objectives: [
-            'Construcción de Mesa Eterna en madera noble',
-            'Gestión de pedidos a medida rentables',
-            'Checklist de calidad total'
+            'Construcción de la Mesa Eterna (madera noble + técnicas mixtas)',
+            'Negociación de pedidos "bespoke" de alto ticket',
+            'Control de calidad total y packaging de lujo',
+            'Garantía de por vida y documentación de obra'
         ],
-        skills: ['Negociación premium', 'Garantía y mantenimiento'],
-        exercises: [],
+        skills: ['Venta consultiva', 'Gestión de maderas exóticas', 'Estrategia de lujo'],
+        exercises: [
+            'Entrega de una obra de más de $2000 USD',
+            'Creación de un certificado de autenticidad'
+        ],
         resources: []
     }
 ]

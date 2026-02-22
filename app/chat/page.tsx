@@ -71,8 +71,9 @@ export default function ChatPage() {
     }, [])
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, loading])
+        if (initializing) return
+        bottomRef.current?.scrollIntoView({ behavior: 'auto' })
+    }, [messages, loading, initializing])
 
     const sendMessage = async () => {
         if (!input.trim() || loading || !user) return
