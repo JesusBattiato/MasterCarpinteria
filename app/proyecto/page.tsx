@@ -7,15 +7,17 @@ import Navigation from '@/components/Navigation'
 import { MESA_ETERNA_STEPS } from '@/lib/data'
 
 export default function ProyectoPage() {
-    const [stepStatus, setStepStatus] = useState<Record<number, boolean>>({})
+    const [stepStatus, setStepStatus] = useState<Record<string | number, boolean>>({})
     const [expandedStep, setExpandedStep] = useState<number | null>(null)
     const [user, setUser] = useState<any>(null)
+    const [projectSteps, setProjectSteps] = useState<any[]>([])
+    const [customSteps, setCustomSteps] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const router = useRouter()
     const supabase = createClient()
 
     useEffect(() => {
-        async function load() {
+        async function loadData() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) { router.push('/auth'); return }
             setUser(user)
@@ -25,15 +27,29 @@ export default function ProyectoPage() {
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('project_name', 'mesa_eterna')
+                .order('step_number', { ascending: true })
 
-            const status: Record<number, boolean> = {}
+            const { data: custom } = await supabase
+                .from('custom_steps')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('category', 'proyecto')
+                .order('order_index', { ascending: true })
+
+            setProjectSteps(steps || [])
+            setCustomSteps(custom || [])
+
+            const status: Record<string | number, boolean> = {}
             if (steps) {
                 steps.forEach((s: any) => { status[s.step_number] = s.completed })
+            }
+            if (custom) {
+                custom.forEach((s: any) => { status[`custom-${s.id}`] = s.completed })
             }
             setStepStatus(status)
             setLoading(false)
         }
-        load()
+        loadData()
     }, [])
 
     const toggleStep = async (stepNum: number) => {

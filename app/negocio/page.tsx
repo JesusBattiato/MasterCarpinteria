@@ -120,6 +120,47 @@ export default function NegocioPage() {
                     </p>
                 </div>
 
+                <p className="section-title">Productos para Lote Inicial (Rotación Rápida)</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '32px' }}>
+                    {[
+                        {
+                            title: 'A. Tabla de Cocina Maciza',
+                            desc: '400 x 250 x 25 mm. Pino o eucalipto seleccionado.',
+                            icon: '🥩',
+                            details: 'Listones pegados a canto con PVA D3. Acabado: Aceite mineral + cera.',
+                            steps: 'Cortes repetitivos → Encolado → Lijado pro 180 → Chaflán 45º.'
+                        },
+                        {
+                            title: 'B. Estante Flotante',
+                            desc: '800 x 200 x 30 mm. Pino seleccionado.',
+                            icon: '🖼️',
+                            details: 'Incluye varillas roscadas M8 o soportes comerciales.',
+                            steps: 'Corte precisión ±0,5mm → Perforación trasera → 3 manos poliuretano aqua.'
+                        },
+                        {
+                            title: 'C. Banco Pequeño Minimalista',
+                            desc: '450 x 250 x 450 mm. Estructural y estético.',
+                            icon: '🪑',
+                            details: 'Ensamble de espiga falsa con fresado o tornillo oculto.',
+                            steps: 'Marcado con cuchillo → Caja y espiga → Patas 45x45 → Aceite duro.'
+                        },
+                    ].map((p, i) => (
+                        <div key={i} className="card fade-in" style={{ borderLeft: '3px solid var(--accent-gold)' }}>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '1.5rem' }}>{p.icon}</span>
+                                <p style={{ fontFamily: 'Outfit', fontWeight: 700 }}>{p.title}</p>
+                            </div>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>{p.desc}</p>
+                            <div style={{ background: 'var(--surface-3)', padding: '8px', borderRadius: '8px', fontSize: '0.78rem' }}>
+                                <p style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Técnica:</p>
+                                <p style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>{p.details}</p>
+                                <p style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Clave paso a paso:</p>
+                                <p style={{ color: 'var(--text-muted)' }}>{p.steps}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
                 {BUSINESS_SECTIONS.map((section, sIdx) => {
                     const isOpen = activeSection === section.id
                     return (

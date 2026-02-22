@@ -163,13 +163,13 @@ export default function DashboardPage() {
                 <div className="section-title animate-delay-3 fade-in">Acciones rápidas</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
                     {[
-                        { href: '/chat', icon: '🤖', label: 'Hablar con el Coach', sub: 'IA Mentor' },
-                        { href: '/revision', icon: '📝', label: 'Revisión Semanal', sub: 'Accountability' },
-                        { href: '/habitos', icon: '⏱️', label: 'Mis Hábitos', sub: 'Plan semanal' },
-                        { href: '/negocio', icon: '💼', label: 'Mi Negocio', sub: 'Estrategia' },
+                        { href: '/chat', icon: '🤖', label: 'IA Mentor', sub: 'Coaching' },
+                        { href: '/taller', icon: '🏗️', label: 'Mi Taller', sub: 'Layout 3x0.8m' },
+                        { href: '/revision', icon: '📝', label: 'Revisión', sub: 'Check-in' },
+                        { href: '/negocio', icon: '💼', label: 'Mi Negocio', sub: 'Lote A/B/C' },
                     ].map((item) => (
                         <Link key={item.href} href={item.href}>
-                            <div className="card animate-delay-4 fade-in" style={{ cursor: 'pointer', height: '100%' }}>
+                            <div className="card animate-delay-4 fade-in" style={{ cursor: 'pointer', height: '100%', padding: '16px' }}>
                                 <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>{item.icon}</div>
                                 <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '0.9rem' }}>{item.label}</p>
                                 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{item.sub}</p>

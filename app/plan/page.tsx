@@ -93,7 +93,20 @@ export default function PlanPage() {
 
                             {isExpanded && (
                                 <div className="phase-body">
-                                    <div style={{ marginTop: '12px' }}>
+                                    {isActive && (
+                                        <button
+                                            onClick={async () => {
+                                                const next = currentPhase + 1
+                                                if (next > 5) return
+                                                const { error } = await supabase.from('profiles').update({ current_phase: next }).eq('user_id', user.id)
+                                                if (!error) setCurrentPhase(next)
+                                            }}
+                                            className="btn btn-primary"
+                                            style={{ marginBottom: '16px', width: '100%', fontSize: '0.85rem' }}
+                                        >
+                                            ✅ Marcar Fase {phase.id} como Completada
+                                        </button>
+                                    )}                                    <div style={{ marginTop: '12px' }}>
                                         <p className="section-title">🎯 Objetivos</p>
                                         <ul>
                                             {phase.objectives.map((obj, i) => <li key={i}>{obj}</li>)}
@@ -117,7 +130,15 @@ export default function PlanPage() {
                                     <div>
                                         <p className="section-title">📺 Recursos recomendados</p>
                                         <ul>
-                                            {phase.resources.map((res, i) => <li key={i}>{res}</li>)}
+                                            {phase.resources.length > 0 ? (
+                                                phase.resources.map((res: any, i) => (
+                                                    <li key={i}>
+                                                        {res.type === 'video' ? '🎥' : '📄'} {res.title}
+                                                    </li>
+                                                ))
+                                            ) : (
+                                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No hay recursos específicos aún.</p>
+                                            )}
                                         </ul>
                                     </div>
                                 </div>
@@ -125,6 +146,22 @@ export default function PlanPage() {
                         </div>
                     )
                 })}
+
+                {/* Custom Steps Section */}
+                <div className="section-title" style={{ marginTop: '24px' }}>Mi Plan Personalizado</div>
+                <div className="card" style={{ border: '1px dashed var(--accent-gold)', background: 'rgba(212,168,83,0.02)' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                        ¿Quieres ajustar el plan o añadir objetivos propios?<br />
+                        <span style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>Habla con el Mentor IA</span> para modificar tu camino.
+                    </p>
+                    <button
+                        onClick={() => router.push('/chat')}
+                        className="btn btn-secondary"
+                        style={{ marginTop: '12px', width: '100%' }}
+                    >
+                        ⚙️ Personalizar plan con IA
+                    </button>
+                </div>
             </div>
             <Navigation />
         </div>

@@ -14,7 +14,20 @@ CREATE TABLE IF NOT EXISTS profiles (
   budget INTEGER,
   experience TEXT,
   materials_access TEXT,
+  layout_data JSONB DEFAULT '{}',
   current_phase INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 1.1 Custom Steps (para planes personalizados)
+CREATE TABLE IF NOT EXISTS custom_steps (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  category TEXT NOT NULL, -- 'plan', 'taller', 'negocio'
+  title TEXT NOT NULL,
+  description TEXT,
+  completed BOOLEAN DEFAULT false,
+  order_index INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -70,6 +83,7 @@ CREATE TABLE IF NOT EXISTS project_steps (
 -- =============================================
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE custom_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weekly_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
@@ -77,6 +91,7 @@ ALTER TABLE project_steps ENABLE ROW LEVEL SECURITY;
 
 -- Policies: cada usuario solo ve sus propios datos
 CREATE POLICY "Users see own profile" ON profiles FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users see own custom steps" ON custom_steps FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users see own goals" ON goals FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users see own reviews" ON weekly_reviews FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users see own messages" ON chat_messages FOR ALL USING (auth.uid() = user_id);
