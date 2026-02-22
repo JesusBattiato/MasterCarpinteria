@@ -28,9 +28,13 @@ export async function POST(req: NextRequest) {
                 if (commandMatch) {
                     const commands = JSON.parse(commandMatch[1])
                     for (const cmd of commands) {
+                        // Normalize action types
+                        let action = cmd.action
+                        if (action === 'UPDATE_OBJECTIVE') action = 'SET_PROJECT'
+
                         await supabase.from('ai_suggestions').insert({
                             user_id: user.id,
-                            action_type: cmd.action,
+                            action_type: action,
                             data: cmd,
                             explanation: cmd.explanation || 'Sugerido por el Mentor',
                         })

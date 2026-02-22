@@ -46,11 +46,15 @@ export default function DashboardPage() {
                 .from('project_steps')
                 .select('*')
                 .eq('user_id', user.id)
-                .eq('project_name', 'mesa_eterna')
-                .order('step_number', { ascending: true })
+                .eq('project_name', prof.active_project_name || 'Mesa Eterna')
 
-            setWeeklyGoals(goals || [])
-            setProjectSteps(steps || [])
+            const { data: custom } = await supabase
+                .from('custom_steps')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('category', 'proyecto')
+
+            setProjectSteps([...(steps || []), ...(custom || [])])
             setLoading(false)
         }
         loadData()
@@ -135,22 +139,22 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Mesa Eterna Progress */}
+                {/* Dynamic Project Progress Card */}
                 <div className="card animate-delay-2 fade-in">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <div>
-                            <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>🪑 Mesa Eterna</p>
+                            <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>🪑 {profile?.active_project_name || 'Mi Proyecto'}</p>
                             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tu proyecto central</p>
                         </div>
                         <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-gold)' }}>
-                            {projectProgress}%
+                            {projectSteps.length > 0 ? Math.round((projectSteps.filter(s => s.completed).length / projectSteps.length) * 100) : 0}%
                         </span>
                     </div>
                     <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${projectProgress}%` }} />
+                        <div className="progress-fill" style={{ width: `${projectSteps.length > 0 ? (projectSteps.filter(s => s.completed).length / projectSteps.length) * 100 : 0}%` }} />
                     </div>
                     <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                        {completedSteps} de {totalSteps} etapas completadas
+                        {projectSteps.filter(s => s.completed).length} de {projectSteps.length} etapas completadas
                     </p>
                     <Link href="/proyecto">
                         <button className="btn btn-ghost" style={{ marginTop: '10px', fontSize: '0.85rem' }}>

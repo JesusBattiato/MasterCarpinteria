@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   materials_access TEXT,
   layout_data JSONB DEFAULT '{}',
   current_phase INTEGER DEFAULT 1,
+  active_project_name TEXT DEFAULT 'Mesa Eterna',
+  streak_count INTEGER DEFAULT 0,
+  last_log_date DATE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -26,6 +29,7 @@ CREATE TABLE IF NOT EXISTS custom_steps (
   category TEXT NOT NULL, -- 'plan', 'taller', 'negocio', 'proyecto'
   title TEXT NOT NULL,
   description TEXT,
+  resources JSONB DEFAULT '[]', -- [{title: "...", url: "..."}]
   completed BOOLEAN DEFAULT false,
   order_index INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -82,10 +86,31 @@ CREATE TABLE IF NOT EXISTS project_steps (
 CREATE TABLE IF NOT EXISTS ai_suggestions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  action_type TEXT NOT NULL, -- 'ADD_STEP', 'REMOVE_STEP', 'ADJUST_PHASE'
-  data JSONB NOT NULL, -- { title: "...", description: "...", phase: 1 }
+  action_type TEXT NOT NULL, -- 'ADD_STEP', 'REMOVE_STEP', 'ADJUST_PHASE', 'SET_PROJECT'
+  data JSONB NOT NULL, -- { title: "...", description: "...", phase: 1, resources: [...] }
   status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
   explanation TEXT, -- Por qué la IA sugiere esto
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. Daily Logs (seguimiento diario)
+CREATE TABLE IF NOT EXISTS daily_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  completed_habits JSONB DEFAULT '[]', -- Liste de títulos de hábitos completados
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+
+-- 8. Project Notes (recordatorios por proyecto)
+CREATE TABLE IF NOT EXISTS project_notes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  project_name TEXT NOT NULL,
+  content TEXT NOT NULL,
+  is_completed BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -100,6 +125,8 @@ ALTER TABLE weekly_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_suggestions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_notes ENABLE ROW LEVEL SECURITY;
 
 -- Limpieza de políticas previas para evitar errores si ya existen
 DROP POLICY IF EXISTS "Users see own profile" ON profiles;
@@ -109,6 +136,8 @@ DROP POLICY IF EXISTS "Users see own reviews" ON weekly_reviews;
 DROP POLICY IF EXISTS "Users see own messages" ON chat_messages;
 DROP POLICY IF EXISTS "Users see own steps" ON project_steps;
 DROP POLICY IF EXISTS "Users see own suggestions" ON ai_suggestions;
+DROP POLICY IF EXISTS "Users see own logs" ON daily_logs;
+DROP POLICY IF EXISTS "Users see own project notes" ON project_notes;
 
 -- Policies: cada usuario solo ve sus propios datos
 CREATE POLICY "Users see own profile" ON profiles FOR ALL USING (auth.uid() = user_id);
@@ -118,3 +147,5 @@ CREATE POLICY "Users see own reviews" ON weekly_reviews FOR ALL USING (auth.uid(
 CREATE POLICY "Users see own messages" ON chat_messages FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users see own steps" ON project_steps FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users see own suggestions" ON ai_suggestions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users see own logs" ON daily_logs FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users see own project notes" ON project_notes FOR ALL USING (auth.uid() = user_id);

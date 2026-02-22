@@ -10,8 +10,12 @@ export default function PlanPage() {
     const [activePhase, setActivePhase] = useState<number | null>(1)
     const [currentPhase, setCurrentPhase] = useState(1)
     const [user, setUser] = useState<any>(null)
+    const [projectName, setProjectName] = useState('Mi Proyecto')
     const [customSteps, setCustomSteps] = useState<any[]>([])
     const [suggestions, setSuggestions] = useState<any[]>([])
+    const [editingStep, setEditingStep] = useState<any>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const [isAILoading, setIsAILoading] = useState(false)
     const router = useRouter()
     const supabase = createClient()
 
@@ -21,9 +25,10 @@ export default function PlanPage() {
             if (!user) { router.push('/auth'); return }
             setUser(user)
 
-            // Current Phase
-            const { data: profile } = await supabase.from('profiles').select('current_phase').eq('user_id', user.id).single()
+            // Current Phase and Project Name
+            const { data: profile } = await supabase.from('profiles').select('current_phase, active_project_name').eq('user_id', user.id).single()
             if (profile?.current_phase) setCurrentPhase(profile.current_phase)
+            if (profile?.active_project_name) setProjectName(profile.active_project_name)
 
             // Custom Steps
             const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
@@ -47,9 +52,16 @@ export default function PlanPage() {
                 category: sugg.data.category || 'plan',
                 title: sugg.data.title,
                 description: sugg.data.description,
+                resources: sugg.data.resources || [],
                 order_index: customSteps.length
             })
             if (insertError) return
+        } else if (sugg.action_type === 'SET_PROJECT' || sugg.action_type === 'UPDATE_OBJECTIVE') {
+            const { error: updateError } = await supabase.from('profiles')
+                .update({ active_project_name: sugg.data.project_name || sugg.data.title })
+                .eq('user_id', user.id)
+            if (updateError) return
+            setProjectName(sugg.data.project_name || sugg.data.title)
         }
 
         // Mark suggestion as approved
@@ -66,6 +78,63 @@ export default function PlanPage() {
     const handleReject = async (suggId: string) => {
         await supabase.from('ai_suggestions').update({ status: 'rejected' }).eq('id', suggId)
         setSuggestions(suggestions.filter(s => s.id !== suggId))
+    }
+
+    const handleSaveEdit = async () => {
+        if (!editingStep || !user) return
+        setIsSaving(true)
+        const { error } = await supabase
+            .from('custom_steps')
+            .update({
+                title: editingStep.title,
+                description: editingStep.description
+            })
+            .eq('id', editingStep.id)
+
+        if (!error) {
+            setCustomSteps(customSteps.map(s => s.id === editingStep.id ? editingStep : s))
+            setEditingStep(null)
+        }
+        setIsSaving(false)
+    }
+
+    const handleDeleteStep = async (id: string) => {
+        if (!confirm('¿Seguro que querés eliminar este paso?')) return
+        const { error } = await supabase.from('custom_steps').delete().eq('id', id)
+        if (!error) {
+            setCustomSteps(customSteps.filter(s => s.id !== id))
+        }
+    }
+
+    const handleAIEnhance = async () => {
+        if (!editingStep) return
+        setIsAILoading(true)
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: `Mejora este paso de mi plan: "${editingStep.title}". Descripción actual: "${editingStep.description || ''}". Responde brevemente con el nuevo título y descripción en este formato: TITULO: [nuevo titulo] | DESCRIPCION: [nueva descripcion]`,
+                    history: [],
+                    profile: { current_phase: currentPhase }
+                })
+            })
+            const data = await res.json()
+            if (data.response) {
+                const titleMatch = data.response.match(/TITULO:\s*(.*?)($|\|)/i)
+                const descMatch = data.response.match(/DESCRIPCION:\s*(.*)/i)
+                if (titleMatch || descMatch) {
+                    setEditingStep({
+                        ...editingStep,
+                        title: titleMatch ? titleMatch[1].trim() : editingStep.title,
+                        description: descMatch ? descMatch[1].trim() : editingStep.description
+                    })
+                }
+            }
+        } catch (err) {
+            console.error(err)
+        }
+        setIsAILoading(false)
     }
 
     return (
@@ -181,8 +250,15 @@ export default function PlanPage() {
                                             {phase.objectives.map((obj, i) => <li key={i}>{obj}</li>)}
                                             {/* Render Custom Steps */}
                                             {phaseCustomSteps.map((s, i) => (
-                                                <li key={`custom-${s.id}`} style={{ color: 'var(--accent-gold)' }}>
-                                                    ✨ {s.title}
+                                                <li key={`custom-${s.id}`} style={{ color: 'var(--accent-gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        ✨ {s.title}
+                                                        {s.description && <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '1.2rem', marginTop: '2px' }}>{s.description}</p>}
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                                        <button onClick={(e) => { e.stopPropagation(); setEditingStep(s) }} className="icon-btn" style={{ padding: '4px' }}>✏️</button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteStep(s.id) }} className="icon-btn delete" style={{ padding: '4px' }}>🗑️</button>
+                                                    </div>
                                                 </li>
                                             ))}
                                         </ul>
@@ -227,9 +303,15 @@ export default function PlanPage() {
                     <>
                         <div className="section-title" style={{ marginTop: '24px' }}>Objetivos Personalizados</div>
                         {customSteps.filter(s => !s.category.startsWith('phase-')).map(s => (
-                            <div key={s.id} className="card" style={{ marginBottom: '8px', borderLeft: '3px solid var(--accent-gold)' }}>
-                                <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{s.title}</p>
-                                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{s.description}</p>
+                            <div key={s.id} className="card" style={{ marginBottom: '8px', borderLeft: '3px solid var(--accent-gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1 }}>
+                                    <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{s.title}</p>
+                                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{s.description}</p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button onClick={() => setEditingStep(s)} className="icon-btn">✏️</button>
+                                    <button onClick={() => handleDeleteStep(s.id)} className="icon-btn delete">🗑️</button>
+                                </div>
                             </div>
                         ))}
                     </>
@@ -251,6 +333,62 @@ export default function PlanPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Edit Modal */}
+            {editingStep && (
+                <div className="modal-overlay" onClick={() => setEditingStep(null)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>Editar Objetivo</h2>
+
+                        <div className="input-group">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <label className="input-label" style={{ marginBottom: 0 }}>Título</label>
+                                <button
+                                    onClick={handleAIEnhance}
+                                    disabled={isAILoading}
+                                    style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', background: 'none', border: 'none', cursor: 'pointer' }}
+                                >
+                                    {isAILoading ? '🪄 Pensando...' : '✨ Mejorar con IA'}
+                                </button>
+                            </div>
+                            <input
+                                className="input"
+                                value={editingStep.title}
+                                onChange={e => setEditingStep({ ...editingStep, title: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Descripción</label>
+                            <textarea
+                                className="input"
+                                value={editingStep.description || ''}
+                                onChange={e => setEditingStep({ ...editingStep, description: e.target.value })}
+                                style={{ minHeight: '100px' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={isSaving}
+                                className="btn btn-primary"
+                                style={{ flex: 2 }}
+                            >
+                                {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                            </button>
+                            <button
+                                onClick={() => setEditingStep(null)}
+                                className="btn btn-ghost"
+                                style={{ flex: 1 }}
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Navigation />
         </div>
     )
