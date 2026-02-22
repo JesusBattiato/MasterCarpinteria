@@ -56,7 +56,7 @@ export default function PlanPage() {
                 order_index: customSteps.length
             })
             if (insertError) return
-        } else if (sugg.action_type === 'SET_PROJECT' || sugg.action_type === 'UPDATE_OBJECTIVE') {
+        } else if (sugg.action_type === 'SET_PROJECT' || sugg.action_type === 'UPDATE_OBJECTIVE' || sugg.action_type === 'CREATE_PROJECT') {
             const { error: updateError } = await supabase.from('profiles')
                 .update({ active_project_name: sugg.data.project_name || sugg.data.title })
                 .eq('user_id', user.id)
