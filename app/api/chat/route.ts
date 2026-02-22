@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { askMentor } from '@/lib/gemini'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
     try {
         const { message, history, profile } = await req.json()
+        const supabase = createServerSupabaseClient()
+
+        // Get current user to save suggestions
+        const { data: { user } } = await supabase.auth.getUser()
 
         // Convert history from Gemini format to simple ChatMessage format
         const messages = [
@@ -15,6 +20,27 @@ export async function POST(req: NextRequest) {
         ]
 
         const response = await askMentor(messages, profile)
+
+        // Command Extraction Logic
+        if (response.includes('COMMAND:') && user) {
+            try {
+                const commandMatch = response.match(/COMMAND:\s*(\[[\s\S]*\])/)
+                if (commandMatch) {
+                    const commands = JSON.parse(commandMatch[1])
+                    for (const cmd of commands) {
+                        await supabase.from('ai_suggestions').insert({
+                            user_id: user.id,
+                            action_type: cmd.action,
+                            data: cmd,
+                            explanation: cmd.explanation || 'Sugerido por el Mentor',
+                        })
+                    }
+                }
+            } catch (cmdError) {
+                console.error('Failed to process AI command:', cmdError)
+            }
+        }
+
         return NextResponse.json({ response })
     } catch (error: any) {
         console.error('AI error:', error)

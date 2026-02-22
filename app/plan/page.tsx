@@ -10,17 +10,63 @@ export default function PlanPage() {
     const [activePhase, setActivePhase] = useState<number | null>(1)
     const [currentPhase, setCurrentPhase] = useState(1)
     const [user, setUser] = useState<any>(null)
+    const [customSteps, setCustomSteps] = useState<any[]>([])
+    const [suggestions, setSuggestions] = useState<any[]>([])
     const router = useRouter()
     const supabase = createClient()
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) => {
+        async function loadData() {
+            const { data: { user } } = await supabase.auth.getUser()
             if (!user) { router.push('/auth'); return }
             setUser(user)
-            supabase.from('profiles').select('current_phase').eq('user_id', user.id).single()
-                .then(({ data }) => { if (data?.current_phase) setCurrentPhase(data.current_phase) })
-        })
+
+            // Current Phase
+            const { data: profile } = await supabase.from('profiles').select('current_phase').eq('user_id', user.id).single()
+            if (profile?.current_phase) setCurrentPhase(profile.current_phase)
+
+            // Custom Steps
+            const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
+            setCustomSteps(steps || [])
+
+            // Suggestions
+            const { data: suggs } = await supabase.from('ai_suggestions')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+            setSuggestions(suggs || [])
+        }
+        loadData()
     }, [])
+
+    const handleApprove = async (sugg: any) => {
+        if (sugg.action_type === 'ADD_STEP') {
+            const { error: insertError } = await supabase.from('custom_steps').insert({
+                user_id: user.id,
+                category: sugg.data.category || 'plan',
+                title: sugg.data.title,
+                description: sugg.data.description,
+                order_index: customSteps.length
+            })
+            if (insertError) return
+        }
+
+        // Mark suggestion as approved
+        await supabase.from('ai_suggestions').update({ status: 'approved' }).eq('id', sugg.id)
+        setSuggestions(suggestions.filter(s => s.id !== sugg.id))
+
+        // Reload steps if added
+        if (sugg.action_type === 'ADD_STEP') {
+            const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
+            setCustomSteps(steps || [])
+        }
+    }
+
+    const handleReject = async (suggId: string) => {
+        await supabase.from('ai_suggestions').update({ status: 'rejected' }).eq('id', suggId)
+        setSuggestions(suggestions.filter(s => s.id !== suggId))
+    }
 
     return (
         <div className="page-wrapper">
@@ -32,6 +78,25 @@ export default function PlanPage() {
             </div>
 
             <div className="page-content" style={{ paddingTop: 0 }}>
+                {/* AI Suggestions Banner */}
+                {suggestions.length > 0 && (
+                    <div className="card fade-in" style={{ border: '1px solid var(--accent-gold)', marginBottom: '16px', background: 'rgba(212,168,83,0.05)' }}>
+                        <p style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--accent-gold)', marginBottom: '8px' }}>
+                            ✨ Sugerencia del Mentor
+                        </p>
+                        {suggestions.map(s => (
+                            <div key={s.id} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(212,168,83,0.1)' }}>
+                                <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{s.data.title}</p>
+                                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>{s.explanation}</p>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                    <button onClick={() => handleApprove(s)} className="btn btn-primary" style={{ flex: 1, padding: '6px', fontSize: '0.75rem' }}>Aprobar</button>
+                                    <button onClick={() => handleReject(s.id)} className="btn btn-secondary" style={{ flex: 1, padding: '6px', fontSize: '0.75rem' }}>Omitir</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* Overview banner */}
                 <div className="card" style={{
                     background: 'linear-gradient(135deg, rgba(212,168,83,0.12), rgba(232,136,42,0.06))',
@@ -61,6 +126,10 @@ export default function PlanPage() {
                     const isExpanded = activePhase === phase.id
                     const isActive = phase.id === currentPhase
                     const isDone = phase.id < currentPhase
+
+                    // Filter custom steps for this phase category (assuming category matches phase.id or 'plan')
+                    const phaseCustomSteps = customSteps.filter(s => s.category === `phase-${phase.id}`)
+
                     return (
                         <div
                             key={phase.id}
@@ -110,6 +179,12 @@ export default function PlanPage() {
                                         <p className="section-title">🎯 Objetivos</p>
                                         <ul>
                                             {phase.objectives.map((obj, i) => <li key={i}>{obj}</li>)}
+                                            {/* Render Custom Steps */}
+                                            {phaseCustomSteps.map((s, i) => (
+                                                <li key={`custom-${s.id}`} style={{ color: 'var(--accent-gold)' }}>
+                                                    ✨ {s.title}
+                                                </li>
+                                            ))}
                                         </ul>
                                     </div>
                                     <div className="divider" />
@@ -146,6 +221,19 @@ export default function PlanPage() {
                         </div>
                     )
                 })}
+
+                {/* Custom Steps Section (Uncategorized) */}
+                {customSteps.filter(s => !s.category.startsWith('phase-')).length > 0 && (
+                    <>
+                        <div className="section-title" style={{ marginTop: '24px' }}>Objetivos Personalizados</div>
+                        {customSteps.filter(s => !s.category.startsWith('phase-')).map(s => (
+                            <div key={s.id} className="card" style={{ marginBottom: '8px', borderLeft: '3px solid var(--accent-gold)' }}>
+                                <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{s.title}</p>
+                                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{s.description}</p>
+                            </div>
+                        ))}
+                    </>
+                )}
 
                 {/* Custom Steps Section */}
                 <div className="section-title" style={{ marginTop: '24px' }}>Mi Plan Personalizado</div>
