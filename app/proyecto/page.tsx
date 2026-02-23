@@ -48,12 +48,12 @@ export default function ProyectoPage() {
                 .eq('project_name', profile?.active_project_name || 'Mesa Eterna')
                 .order('step_number', { ascending: true })
 
-            // Get Custom Steps for Project
+            // Get Custom Steps for Project (including sub-categories used by AI)
             const { data: custom } = await supabase
                 .from('custom_steps')
                 .select('*')
                 .eq('user_id', authUser.id)
-                .eq('category', 'proyecto')
+                .in('category', ['proyecto', 'diseño', 'corte', 'ensamblaje', 'acabado'])
                 .order('order_index', { ascending: true })
 
             const merged = [
