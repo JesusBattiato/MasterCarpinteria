@@ -28,6 +28,8 @@ export default function ChatPage() {
     const [initializing, setInitializing] = useState(true)
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)
+    const [suggestions, setSuggestions] = useState<any[]>([])
+    const [isSaving, setIsSaving] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLTextAreaElement>(null)
     const router = useRouter()
@@ -45,6 +47,14 @@ export default function ChatPage() {
                 .eq('user_id', user.id)
                 .single()
             setProfile(prof)
+
+            // Initial load of suggestions
+            const { data: suggs } = await supabase.from('ai_suggestions')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+            setSuggestions(suggs || [])
 
             const { data: msgs } = await supabase
                 .from('chat_messages')
@@ -136,6 +146,17 @@ export default function ChatPage() {
                 role: 'assistant',
                 content: aiContent,
             })
+
+            // Reload suggestions after a short delay to allow background processing
+            setTimeout(async () => {
+                const { data: updatedSuggs } = await supabase.from('ai_suggestions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false })
+                setSuggestions(updatedSuggs || [])
+            }, 1000)
+
         } catch (err: any) {
             const errMsg: Message = {
                 id: (Date.now() + 1).toString(),
@@ -147,6 +168,41 @@ export default function ChatPage() {
         }
 
         setLoading(false)
+    }
+
+    const handleApprove = async (sugg: any) => {
+        setIsSaving(true)
+        try {
+            if (sugg.action_type === 'ADD_STEP') {
+                const { error: insertError } = await supabase.from('custom_steps').insert({
+                    user_id: user.id,
+                    category: sugg.data.category || 'proyecto',
+                    title: sugg.data.title,
+                    description: sugg.data.description,
+                    resources: sugg.data.resources || [],
+                    order_index: 99
+                })
+                if (insertError) throw insertError
+            } else if (sugg.action_type === 'SET_PROJECT' || sugg.action_type === 'UPDATE_OBJECTIVE' || sugg.action_type === 'CREATE_PROJECT') {
+                const { error: updateError } = await supabase.from('profiles')
+                    .update({ active_project_name: sugg.data.project_name || sugg.data.title })
+                    .eq('user_id', user.id)
+                if (updateError) throw updateError
+            }
+
+            // Mark suggestion as approved
+            await supabase.from('ai_suggestions').update({ status: 'approved' }).eq('id', sugg.id)
+            setSuggestions(suggestions.filter(s => s.id !== sugg.id))
+        } catch (err: any) {
+            console.error('Error approving:', err)
+            alert('Error al aprobar: ' + err.message)
+        }
+        setIsSaving(false)
+    }
+
+    const handleReject = async (suggId: string) => {
+        await supabase.from('ai_suggestions').update({ status: 'rejected' }).eq('id', suggId)
+        setSuggestions(suggestions.filter(s => s.id !== suggId))
     }
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -186,6 +242,50 @@ export default function ChatPage() {
                     <p style={{ fontSize: '0.72rem', color: 'var(--accent-green)' }}>● Activo · Groq / Llama 3.3-70b</p>
                 </div>
             </div>
+
+            {/* AI Suggestions Banner */}
+            {suggestions.length > 0 && (
+                <div style={{
+                    padding: '12px 16px',
+                    background: 'rgba(212,168,83,0.1)',
+                    borderBottom: '1px solid var(--accent-gold)',
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                }}>
+                    <p style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--accent-gold)', fontSize: '0.85rem', marginBottom: '8px' }}>
+                        ✨ Sugerencias pendientes
+                    </p>
+                    {suggestions.map(s => (
+                        <div key={s.id} style={{
+                            background: 'var(--surface-2)',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            marginBottom: '8px',
+                            border: '1px solid var(--border)',
+                        }}>
+                            <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>{s.data.title || s.data.project_name}</p>
+                            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0' }}>{s.explanation}</p>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                <button
+                                    onClick={() => handleApprove(s)}
+                                    disabled={isSaving}
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, padding: '4px', fontSize: '0.72rem' }}
+                                >
+                                    {isSaving ? '...' : 'Aprobar'}
+                                </button>
+                                <button
+                                    onClick={() => handleReject(s.id)}
+                                    className="btn btn-secondary"
+                                    style={{ flex: 1, padding: '4px', fontSize: '0.72rem' }}
+                                >
+                                    Omitir
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '8px' }}>
