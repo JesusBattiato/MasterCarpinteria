@@ -13,8 +13,11 @@ interface Message {
 }
 
 function formatMessage(text: string) {
+    // Hide COMMAND: [...] blocks from the user-facing text
+    const cleanText = text.replace(/COMMAND:\s*\[[\s\S]*?\]/g, '').trim()
+
     // Simple markdown-like formatting
-    return text
+    return cleanText
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/#{1,3}\s(.+)/g, (_: string, m: string) => `<strong style="color:var(--accent-gold);font-size:1rem;display:block;margin:8px 0 4px">${m}</strong>`)
@@ -243,57 +246,76 @@ export default function ChatPage() {
                 </div>
             </div>
 
-            {/* AI Suggestions Banner - STICKY AND PROMINENT */}
+            {/* AI Suggestions Banner - REDESIGNED */}
             {suggestions.length > 0 && (
                 <div style={{
-                    padding: '12px 16px',
-                    background: 'rgba(212,168,83,0.15)',
-                    borderBottom: '2px solid var(--accent-gold)',
-                    maxHeight: '220px',
+                    padding: '8px 16px',
+                    background: 'rgba(212,168,83,0.08)',
+                    borderBottom: '1px solid rgba(212,168,83,0.3)',
+                    maxHeight: '240px',
                     overflowY: 'auto',
                     position: 'sticky',
-                    top: '73px', // Header height approx
+                    top: '73px',
                     zIndex: 90,
-                    backdropFilter: 'blur(5px)',
+                    backdropFilter: 'blur(12px)',
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '1.2rem' }}>✨</span>
-                        <p style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--accent-gold)', fontSize: '0.85rem' }}>
-                            Sugerencias del Mentor (Pulsa aprobar para aplicar)
-                        </p>
-                    </div>
-                    {suggestions.map(s => (
-                        <div key={s.id} style={{
-                            background: 'var(--surface-3)',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            marginBottom: '10px',
-                            border: '1px solid var(--accent-gold)',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                        }}>
-                            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                {s.action_type === 'SET_PROJECT' ? 'Nuevo Proyecto:' : 'Agregar Paso:'} {s.data.title || s.data.project_name}
-                            </p>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '6px 0' }}>{s.explanation}</p>
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                <button
-                                    onClick={() => handleApprove(s)}
-                                    disabled={isSaving}
-                                    className="btn btn-primary"
-                                    style={{ flex: 2, padding: '8px', fontSize: '0.75rem', fontWeight: 700 }}
-                                >
-                                    {isSaving ? 'Aplicando...' : 'Aprobar Cambio'}
-                                </button>
-                                <button
-                                    onClick={() => handleReject(s.id)}
-                                    className="btn btn-secondary"
-                                    style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }}
-                                >
-                                    Omitir
-                                </button>
-                            </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '1rem' }}>✨</span>
+                            <span style={{ fontFamily: 'Outfit', fontWeight: 600, color: 'var(--accent-gold)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Propuestas del Mentor
+                            </span>
                         </div>
-                    ))}
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{suggestions.length} pendiente{suggestions.length > 1 ? 's' : ''}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {suggestions.map(s => (
+                            <div key={s.id} style={{
+                                background: 'rgba(255,255,255,0.03)',
+                                padding: '12px',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(212,168,83,0.2)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '4px'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                                        {s.data.title || s.data.project_name}
+                                    </p>
+                                    <span style={{
+                                        fontSize: '0.65rem',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        background: 'rgba(212,168,83,0.1)',
+                                        color: 'var(--accent-gold)',
+                                        fontWeight: 600
+                                    }}>
+                                        {s.action_type === 'SET_PROJECT' ? 'PROYECTO' : 'PASO'}
+                                    </span>
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>{s.explanation}</p>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button
+                                        onClick={() => handleApprove(s)}
+                                        disabled={isSaving}
+                                        className="btn btn-primary"
+                                        style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '8px' }}
+                                    >
+                                        {isSaving ? '...' : 'Aprobar'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleReject(s.id)}
+                                        className="btn btn-ghost"
+                                        style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}
+                                    >
+                                        Omitir
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
