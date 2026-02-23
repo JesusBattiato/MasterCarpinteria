@@ -31,26 +31,34 @@ export async function POST(req: NextRequest) {
         // Processing commands in the background/separately so we don't crash the response
         if (response.includes('COMMAND:') && user) {
             try {
-                const commandRegex = /COMMAND:\s*(\[[\s\S]*?\])/g
-                let match
-                while ((match = commandRegex.exec(response)) !== null) {
-                    try {
-                        const commands = JSON.parse(match[1])
-                        if (Array.isArray(commands)) {
-                            for (const cmd of commands) {
-                                let action = cmd.action
-                                if (action === 'UPDATE_OBJECTIVE') action = 'SET_PROJECT'
+                // Find all markers and extract until the next marker or end
+                const parts = response.split('COMMAND:')
+                for (let i = 1; i < parts.length; i++) {
+                    const block = parts[i].trim()
+                    // Find the outermost JSON array starting with [ and ending with ]
+                    const startIdx = block.indexOf('[')
+                    const endIdx = block.lastIndexOf(']')
 
-                                await supabase.from('ai_suggestions').insert({
-                                    user_id: user.id,
-                                    action_type: action,
-                                    data: cmd,
-                                    explanation: cmd.explanation || 'Sugerido por el Mentor',
-                                })
+                    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                        try {
+                            const jsonStr = block.substring(startIdx, endIdx + 1)
+                            const commands = JSON.parse(jsonStr)
+                            if (Array.isArray(commands)) {
+                                for (const cmd of commands) {
+                                    let action = cmd.action
+                                    if (action === 'UPDATE_OBJECTIVE') action = 'SET_PROJECT'
+
+                                    await supabase.from('ai_suggestions').insert({
+                                        user_id: user.id,
+                                        action_type: action,
+                                        data: cmd,
+                                        explanation: cmd.explanation || 'Sugerido por el Mentor',
+                                    })
+                                }
                             }
+                        } catch (parseErr) {
+                            console.error('JSON Parse error in block:', parseErr)
                         }
-                    } catch (parseErr) {
-                        console.error('JSON Parse error in command:', parseErr)
                     }
                 }
             } catch (cmdErr) {

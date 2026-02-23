@@ -60,11 +60,11 @@ export default function ChatPage() {
                 .from('chat_messages')
                 .select('*')
                 .eq('user_id', user.id)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: false })
                 .limit(50)
 
             if (msgs && msgs.length > 0) {
-                setMessages(msgs)
+                setMessages(msgs.reverse())
             } else {
                 // Welcome message
                 const welcome: Message = {
@@ -147,7 +147,7 @@ export default function ChatPage() {
                 content: aiContent,
             })
 
-            // Reload suggestions after a short delay to allow background processing
+            // Reload suggestions after a delay to allow background processing
             setTimeout(async () => {
                 const { data: updatedSuggs } = await supabase.from('ai_suggestions')
                     .select('*')
@@ -155,7 +155,7 @@ export default function ChatPage() {
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false })
                 setSuggestions(updatedSuggs || [])
-            }, 1000)
+            }, 3000)
 
         } catch (err: any) {
             const errMsg: Message = {
