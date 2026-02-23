@@ -13,8 +13,9 @@ interface Message {
 }
 
 function formatMessage(text: string) {
-    // Hide COMMAND: [...] blocks from the user-facing text
-    const cleanText = text.replace(/COMMAND:\s*\[[\s\S]*?\]/g, '').trim()
+    // Robustly hide everything from COMMAND: onwards
+    const parts = text.split('COMMAND:')
+    const cleanText = parts[0].trim()
 
     // Simple markdown-like formatting
     return cleanText
@@ -296,21 +297,35 @@ export default function ChatPage() {
                                     </span>
                                 </div>
                                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>{s.explanation}</p>
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
                                     <button
                                         onClick={() => handleApprove(s)}
                                         disabled={isSaving}
                                         className="btn btn-primary"
-                                        style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '8px' }}
+                                        style={{
+                                            flex: 1.5,
+                                            padding: '8px 12px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: 700,
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 8px rgba(212,168,83,0.3)'
+                                        }}
                                     >
                                         {isSaving ? '...' : 'Aprobar'}
                                     </button>
                                     <button
                                         onClick={() => handleReject(s.id)}
-                                        className="btn btn-ghost"
-                                        style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}
+                                        className="btn btn-secondary"
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 12px',
+                                            fontSize: '0.78rem',
+                                            borderRadius: '8px',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)'
+                                        }}
                                     >
-                                        Omitir
+                                        Descartar
                                     </button>
                                 </div>
                             </div>
