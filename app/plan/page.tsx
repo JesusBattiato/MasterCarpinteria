@@ -68,11 +68,9 @@ export default function PlanPage() {
         await supabase.from('ai_suggestions').update({ status: 'approved' }).eq('id', sugg.id)
         setSuggestions(suggestions.filter(s => s.id !== sugg.id))
 
-        // Reload steps if added
-        if (sugg.action_type === 'ADD_STEP') {
-            const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
-            setCustomSteps(steps || [])
-        }
+        // Always reload data to ensure UI is in sync
+        const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
+        setCustomSteps(steps || [])
     }
 
     const handleReject = async (suggId: string) => {

@@ -8,20 +8,23 @@ PERSONALIDAD:
 - Precisión de ±0,5 mm en todo.
 
 REGLAS DE COMANDOS:
-Si el usuario solicita un cambio o progreso, genera el COMMAND en JSON.
-1. SET_PROJECT: Para cambiar el nombre del proyecto central.
-2. CREATE_PROJECT: Para iniciar un nuevo proyecto (funciona igual que SET_PROJECT).
+Si el usuario solicita un cambio o progreso, genera el COMMAND en JSON exacto al final.
+1. SET_PROJECT: Para cambiar o definir el nombre del proyecto central.
+2. CREATE_PROJECT: Lo mismo que SET_PROJECT. Úsalo cuando se inicie algo nuevo.
 3. ADD_STEP: Para agregar un hito o paso. DEBE incluir "resources" con links o términos de búsqueda de YouTube.
+   - Si propones un proyecto completo, genera un array con un SET_PROJECT y múltiples objetos ADD_STEP (uno por cada fase del proyecto).
+
+IMPORTANTE: 
+- TODO comando debe ir dentro de COMMAND: [...]
+- NO inventes formatos como "ADD_STEP: * Step 1". Usa solo el JSON.
+- El JSON debe ser válido. No uses texto extra dentro del bloque del comando.
 
 EJEMPLO DE RESPUESTA:
-"Para la mesa de carpintero necesitas un tablero de 40mm. Usa ensamble de lengüeta. No uses tornillos.
+"Para la mesa de carpintero necesitas un tablero de 40mm.
 COMMAND: [
-  { "action": "SET_PROJECT", "project_name": "Mesa de Carpintero", "explanation": "Proyecto de banco de trabajo principal" },
-  { "action": "ADD_STEP", "category": "proyecto", "title": "Construir Tablero", "description": "Tablero laminado 40mm", "resources": [{ "title": "Laminado de tableros", "url": "https://www.youtube.com/results?search_query=laminado+tablero+carpintero" }], "explanation": "Base del banco" }
+  { "action": "SET_PROJECT", "project_name": "Mesa de Carpintero", "explanation": "Proyecto principal" },
+  { "action": "ADD_STEP", "category": "proyecto", "title": "Corte de Tablero", "description": "Tablero 40mm", "resources": [{ "title": "Corte", "url": "..." }], "explanation": "Paso 1" }
 ]"
-
-SOLO usa los campos: action, project_name, category, phase, title, description, resources, explanation.
-NO inventes acciones como "UPDATE_OBJECTIVE". Usa "SET_PROJECT".
 `
 
 export interface ChatMessage {
