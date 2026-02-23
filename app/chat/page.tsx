@@ -111,7 +111,15 @@ export default function ChatPage() {
             })
 
             const data = await response.json()
-            const aiContent = data.response || 'No pude generar una respuesta. Intenta de nuevo.'
+
+            if (!response.ok) {
+                throw new Error(data.error || `Error del servidor (${response.status})`)
+            }
+
+            const aiContent = data.response
+            if (!aiContent) {
+                throw new Error('El mentor no devolvió ninguna respuesta.')
+            }
 
             const aiMsg: Message = {
                 id: (Date.now() + 1).toString(),
@@ -128,11 +136,11 @@ export default function ChatPage() {
                 role: 'assistant',
                 content: aiContent,
             })
-        } catch (err) {
+        } catch (err: any) {
             const errMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: '❌ Error conectando con el mentor IA. Verificá tu conexión e intentá de nuevo.',
+                content: `❌ **Error del Mentor:** ${err.message || 'Error de conexión'}. Intentá de nuevo.`,
                 created_at: new Date().toISOString(),
             }
             setMessages((prev) => [...prev, errMsg])
