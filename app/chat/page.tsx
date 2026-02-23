@@ -222,11 +222,11 @@ export default function ChatPage() {
             <div style={{
                 padding: '16px',
                 borderBottom: '1px solid var(--border)',
-                background: 'rgba(26,15,8,0.95)',
+                background: 'rgba(26,15,8,0.98)',
                 backdropFilter: 'blur(10px)',
                 position: 'sticky',
                 top: 0,
-                zIndex: 50,
+                zIndex: 100,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
@@ -237,47 +237,57 @@ export default function ChatPage() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '1.2rem', flexShrink: 0,
                 }}>🤖</div>
-                <div>
+                <div style={{ flex: 1 }}>
                     <p style={{ fontFamily: 'Outfit', fontWeight: 700 }}>Mentor IA</p>
                     <p style={{ fontSize: '0.72rem', color: 'var(--accent-green)' }}>● Activo · Groq / Llama 3.3-70b</p>
                 </div>
             </div>
 
-            {/* AI Suggestions Banner */}
+            {/* AI Suggestions Banner - STICKY AND PROMINENT */}
             {suggestions.length > 0 && (
                 <div style={{
                     padding: '12px 16px',
-                    background: 'rgba(212,168,83,0.1)',
-                    borderBottom: '1px solid var(--accent-gold)',
-                    maxHeight: '180px',
+                    background: 'rgba(212,168,83,0.15)',
+                    borderBottom: '2px solid var(--accent-gold)',
+                    maxHeight: '220px',
                     overflowY: 'auto',
+                    position: 'sticky',
+                    top: '73px', // Header height approx
+                    zIndex: 90,
+                    backdropFilter: 'blur(5px)',
                 }}>
-                    <p style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--accent-gold)', fontSize: '0.85rem', marginBottom: '8px' }}>
-                        ✨ Sugerencias pendientes
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>✨</span>
+                        <p style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--accent-gold)', fontSize: '0.85rem' }}>
+                            Sugerencias del Mentor (Pulsa aprobar para aplicar)
+                        </p>
+                    </div>
                     {suggestions.map(s => (
                         <div key={s.id} style={{
-                            background: 'var(--surface-2)',
-                            padding: '10px',
+                            background: 'var(--surface-3)',
+                            padding: '12px',
                             borderRadius: '8px',
-                            marginBottom: '8px',
-                            border: '1px solid var(--border)',
+                            marginBottom: '10px',
+                            border: '1px solid var(--accent-gold)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                         }}>
-                            <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>{s.data.title || s.data.project_name}</p>
-                            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0' }}>{s.explanation}</p>
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {s.action_type === 'SET_PROJECT' ? 'Nuevo Proyecto:' : 'Agregar Paso:'} {s.data.title || s.data.project_name}
+                            </p>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '6px 0' }}>{s.explanation}</p>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                                 <button
                                     onClick={() => handleApprove(s)}
                                     disabled={isSaving}
                                     className="btn btn-primary"
-                                    style={{ flex: 1, padding: '4px', fontSize: '0.72rem' }}
+                                    style={{ flex: 2, padding: '8px', fontSize: '0.75rem', fontWeight: 700 }}
                                 >
-                                    {isSaving ? '...' : 'Aprobar'}
+                                    {isSaving ? 'Aplicando...' : 'Aprobar Cambio'}
                                 </button>
                                 <button
                                     onClick={() => handleReject(s.id)}
                                     className="btn btn-secondary"
-                                    style={{ flex: 1, padding: '4px', fontSize: '0.72rem' }}
+                                    style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }}
                                 >
                                     Omitir
                                 </button>
