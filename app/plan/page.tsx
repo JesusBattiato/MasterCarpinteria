@@ -46,31 +46,40 @@ export default function PlanPage() {
     }, [])
 
     const handleApprove = async (sugg: any) => {
-        if (sugg.action_type === 'ADD_STEP') {
-            const { error: insertError } = await supabase.from('custom_steps').insert({
-                user_id: user.id,
-                category: sugg.data.category || 'plan',
-                title: sugg.data.title,
-                description: sugg.data.description,
-                resources: sugg.data.resources || [],
-                order_index: customSteps.length
-            })
-            if (insertError) return
-        } else if (sugg.action_type === 'SET_PROJECT' || sugg.action_type === 'UPDATE_OBJECTIVE' || sugg.action_type === 'CREATE_PROJECT') {
-            const { error: updateError } = await supabase.from('profiles')
-                .update({ active_project_name: sugg.data.project_name || sugg.data.title })
-                .eq('user_id', user.id)
-            if (updateError) return
-            setProjectName(sugg.data.project_name || sugg.data.title)
+        setIsSaving(true)
+        try {
+            if (sugg.action_type === 'ADD_STEP') {
+                const { error: insertError } = await supabase.from('custom_steps').insert({
+                    user_id: user.id,
+                    category: sugg.data.category || 'plan',
+                    title: sugg.data.title,
+                    description: sugg.data.description,
+                    resources: sugg.data.resources || [],
+                    order_index: customSteps.length
+                })
+                if (insertError) throw insertError
+            } else if (sugg.action_type === 'SET_PROJECT' || sugg.action_type === 'UPDATE_OBJECTIVE' || sugg.action_type === 'CREATE_PROJECT') {
+                const { error: updateError } = await supabase.from('profiles')
+                    .update({ active_project_name: sugg.data.project_name || sugg.data.title })
+                    .eq('user_id', user.id)
+                if (updateError) throw updateError
+                setProjectName(sugg.data.project_name || sugg.data.title)
+            }
+
+            // Mark suggestion as approved
+            const { error: statusError } = await supabase.from('ai_suggestions').update({ status: 'approved' }).eq('id', sugg.id)
+            if (statusError) throw statusError
+
+            setSuggestions(suggestions.filter(s => s.id !== sugg.id))
+
+            // Always reload data to ensure UI is in sync
+            const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
+            setCustomSteps(steps || [])
+        } catch (err: any) {
+            console.error('Error approving suggestion:', err)
+            alert('Error al aprobar: ' + (err.message || 'Error desconocido'))
         }
-
-        // Mark suggestion as approved
-        await supabase.from('ai_suggestions').update({ status: 'approved' }).eq('id', sugg.id)
-        setSuggestions(suggestions.filter(s => s.id !== sugg.id))
-
-        // Always reload data to ensure UI is in sync
-        const { data: steps } = await supabase.from('custom_steps').select('*').eq('user_id', user.id).order('order_index', { ascending: true })
-        setCustomSteps(steps || [])
+        setIsSaving(false)
     }
 
     const handleReject = async (suggId: string) => {
