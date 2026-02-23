@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
         const { data: authData } = await supabase.auth.getUser()
         const user = authData?.user
 
-        // Convert history for AI
+        // Convert history for AI (Limit to last 10 messages to avoid TPM limits)
         const messages = [
-            ...(history || []).map((m: any) => ({
+            ...(history || []).slice(-10).map((m: any) => ({
                 role: m.role === 'model' ? 'assistant' : m.role,
                 content: m.parts?.[0]?.text ?? m.content ?? '',
             })),
