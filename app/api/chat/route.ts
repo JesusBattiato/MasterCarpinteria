@@ -7,10 +7,11 @@ export async function POST(req: NextRequest) {
         const { message, history, profile } = await req.json()
         const supabase = createServerSupabaseClient()
 
-        // Get current user to save suggestions
-        const { data: { user } } = await supabase.auth.getUser()
+        // Get current user safely
+        const { data: authData } = await supabase.auth.getUser()
+        const user = authData?.user
 
-        // Convert history from Gemini format to simple ChatMessage format
+        // Convert history for AI
         const messages = [
             ...(history || []).map((m: any) => ({
                 role: m.role === 'model' ? 'assistant' : m.role,
@@ -19,50 +20,49 @@ export async function POST(req: NextRequest) {
             { role: 'user' as const, content: message },
         ]
 
-        const response = await askMentor(messages, profile)
+        let response: string
+        try {
+            response = await askMentor(messages, profile)
+        } catch (aiErr: any) {
+            console.error('Groq API Error:', aiErr)
+            return NextResponse.json({ error: aiErr.message }, { status: 500 })
+        }
 
-        // Command Extraction Logic - Robust multi-block parsing
+        // Processing commands in the background/separately so we don't crash the response
         if (response.includes('COMMAND:') && user) {
             try {
-                // Find all blocks that look like COMMAND: [...]
-                const commandRegex = /COMMAND:\s*(\[[\s\S]*?\])(?=\s*(?:COMMAND:|[\n\r]|$))/g
+                const commandRegex = /COMMAND:\s*(\[[\s\S]*?\])/g
                 let match
-                const allCommands: any[] = []
-
                 while ((match = commandRegex.exec(response)) !== null) {
                     try {
-                        const jsonStr = match[1]
-                        const parsed = JSON.parse(jsonStr)
-                        if (Array.isArray(parsed)) {
-                            allCommands.push(...parsed)
+                        const commands = JSON.parse(match[1])
+                        if (Array.isArray(commands)) {
+                            for (const cmd of commands) {
+                                let action = cmd.action
+                                if (action === 'UPDATE_OBJECTIVE') action = 'SET_PROJECT'
+
+                                await supabase.from('ai_suggestions').insert({
+                                    user_id: user.id,
+                                    action_type: action,
+                                    data: cmd,
+                                    explanation: cmd.explanation || 'Sugerido por el Mentor',
+                                })
+                            }
                         }
-                    } catch (e) {
-                        console.error('Failed to parse individual command block:', e)
+                    } catch (parseErr) {
+                        console.error('JSON Parse error in command:', parseErr)
                     }
                 }
-
-                for (const cmd of allCommands) {
-                    // Normalize action types
-                    let action = cmd.action
-                    if (action === 'UPDATE_OBJECTIVE') action = 'SET_PROJECT'
-
-                    await supabase.from('ai_suggestions').insert({
-                        user_id: user.id,
-                        action_type: action,
-                        data: cmd,
-                        explanation: cmd.explanation || 'Sugerido por el Mentor',
-                    })
-                }
-            } catch (cmdError) {
-                console.error('Failed to process AI commands:', cmdError)
+            } catch (cmdErr) {
+                console.error('Command processing error:', cmdErr)
             }
         }
 
         return NextResponse.json({ response })
     } catch (error: any) {
-        console.error('AI error:', error)
+        console.error('Fatal Chat Route Error:', error)
         return NextResponse.json(
-            { error: error.message || 'Error interno del servidor' },
+            { error: 'Error interno del servidor' },
             { status: 500 }
         )
     }
